@@ -20,6 +20,49 @@
 
 ## Part 1 — Core Spring Boot Foundations
 
+
+> **🎯 FAANG Interview Tip — Part 1**
+> Interviewers at Google, Amazon, and Netflix expect you to explain auto-configuration *mechanistically* — not just "it configures things automatically." Know the conditional annotation chain, the `spring.factories` / `AutoConfiguration.imports` file, and how to debug with `--debug`. Being able to whiteboard the `SpringApplication.run()` lifecycle is a strong differentiator.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              SPRING BOOT AUTO-CONFIGURATION FLOW                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  @SpringBootApplication                                         │
+│  ├── @SpringBootConfiguration  (@Configuration)                 │
+│  ├── @EnableAutoConfiguration                                   │
+│  │     │                                                        │
+│  │     ▼                                                        │
+│  │   META-INF/spring/                                           │
+│  │   org.springframework.boot.autoconfigure.AutoConfiguration   │
+│  │   .imports                                                   │
+│  │     │                                                        │
+│  │     ▼                                                        │
+│  │   Load all AutoConfiguration classes                         │
+│  │     │                                                        │
+│  │     ▼                                                        │
+│  │   Evaluate @Conditional annotations                          │
+│  │   ┌──────────────────────────────────────┐                   │
+│  │   │ @ConditionalOnClass        ✓/✗       │                   │
+│  │   │ @ConditionalOnMissingBean  ✓/✗       │                   │
+│  │   │ @ConditionalOnProperty     ✓/✗       │                   │
+│  │   └──────────────────────────────────────┘                   │
+│  │     │                                                        │
+│  │     ▼                                                        │
+│  │   Register matching beans in ApplicationContext              │
+│  │                                                              │
+│  └── @ComponentScan                                             │
+│        │                                                        │
+│        ▼                                                        │
+│      Scan base package + sub-packages for                       │
+│      @Component, @Service, @Repository, @Controller             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
+
 ---
 
 ### Q1. Why would you choose Spring Boot over the Spring Framework?
@@ -302,7 +345,78 @@ public class DataSeeder implements CommandLineRunner {
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 1: Core Foundations</strong></summary>
+
+1. What three annotations does `@SpringBootApplication` combine?
+2. How does Spring Boot decide which auto-configuration classes to apply?
+3. What is the difference between `@Configuration` and `@Component`?
+4. Name three ways to run a Spring Boot application.
+5. What happens inside `SpringApplication.run()` before your code executes?
+6. When would you use `CommandLineRunner` vs `ApplicationRunner`?
+7. How do you disable a specific auto-configuration class?
+
+</details>
+
+> **📚 Deep Dive — Read More (Part 1)**
+> - [Spring Boot Auto-Configuration — Baeldung](https://www.baeldung.com/spring-boot-auto-configuration)
+> - [Spring Boot Reference — Official Docs](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
+> - [How SpringApplication.run() Works — DZone](https://dzone.com/articles/how-springapplication-runs)
+> - [Spring Boot Starters List — Official](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#using.build-systems.starters)
+
+
 ## Part 2 — Dependency Injection & Bean Management
+
+
+> **🎯 FAANG Interview Tip — Part 2**
+> At Meta and Amazon, DI questions focus on *why constructor injection is preferred* (immutability, testability, fail-fast), not just how to use `@Autowired`. Be ready to explain how Spring's BeanFactory resolves circular dependencies (only for field/setter injection via early references) and why constructor-based circular deps throw `BeanCurrentlyInCreationException`.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│           DEPENDENCY INJECTION — THE BIG PICTURE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   ┌────────────┐       injects        ┌───────────────┐        │
+│   │  Spring    │ ───────────────────▶  │  Your Class   │        │
+│   │  Container │                       │  (Bean)       │        │
+│   └────────────┘                       └───────────────┘        │
+│         │                                                       │
+│         │  Three injection styles:                              │
+│         │                                                       │
+│   ┌─────┼──────────────────────────────────────────────┐        │
+│   │     │                                              │        │
+│   │  1. CONSTRUCTOR (✅ Preferred)                     │        │
+│   │     @Service                                       │        │
+│   │     class OrderService {                           │        │
+│   │       private final PaymentService pay;            │        │
+│   │       OrderService(PaymentService pay) {           │        │
+│   │         this.pay = pay;  // immutable, testable    │        │
+│   │       }                                            │        │
+│   │     }                                              │        │
+│   │                                                    │        │
+│   │  2. SETTER (for optional dependencies)             │        │
+│   │     @Autowired                                     │        │
+│   │     void setCache(CacheService c) { ... }          │        │
+│   │                                                    │        │
+│   │  3. FIELD (❌ Avoid in production)                 │        │
+│   │     @Autowired                                     │        │
+│   │     private PaymentService pay; // hard to test    │        │
+│   │                                                    │        │
+│   └────────────────────────────────────────────────────┘        │
+│                                                                 │
+│   Resolving Ambiguity (multiple beans of same type):            │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│   │  @Primary    │  │  @Qualifier   │  │  @Profile    │        │
+│   │  (default)   │  │  (by name)   │  │  (by env)    │        │
+│   └──────────────┘  └──────────────┘  └──────────────┘        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -591,7 +705,99 @@ public class MailProperties {
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 2: Dependency Injection & Bean Management</strong></summary>
+
+1. Why is constructor injection preferred over field injection?
+2. What happens if there are two beans of the same type and no `@Primary` or `@Qualifier`?
+3. Explain the difference between `@Bean` and `@Component`.
+4. When would you use `BeanFactory` over `ApplicationContext`?
+5. What is the difference between `@Value` and `@ConfigurationProperties`?
+6. Can you inject a prototype-scoped bean into a singleton? What problem arises?
+
+</details>
+
+> **📚 Deep Dive — Read More (Part 2)**
+> - [Spring Dependency Injection — Baeldung](https://www.baeldung.com/spring-dependency-injection)
+> - [Constructor vs Field Injection — Why & How](https://www.baeldung.com/constructor-injection-in-spring)
+> - [@ConfigurationProperties Guide — Baeldung](https://www.baeldung.com/configuration-properties-in-spring-boot)
+> - [Understanding ApplicationContext — Spring Docs](https://docs.spring.io/spring-framework/reference/core/beans/context-introduction.html)
+
+
 ## Part 3 — Bean Scopes & Lifecycle
+
+
+> **🎯 FAANG Interview Tip — Part 3**
+> Netflix and Uber interviewers love bean lifecycle questions because they reveal whether you understand Spring's internals or just use annotations. Know the exact order: constructor → `@PostConstruct` → `afterPropertiesSet()` → custom init → ready → `@PreDestroy` → `destroy()` → custom destroy. Also know that prototype beans are NOT managed after creation — Spring won't call `@PreDestroy` on them.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  SPRING BEAN LIFECYCLE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Container starts                                               │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────────────┐                                        │
+│  │ Instantiate Bean    │  (constructor called)                  │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ Populate Properties │  (DI: @Autowired, @Value)              │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ BeanNameAware       │  setBeanName()                         │
+│  │ BeanFactoryAware    │  setBeanFactory()                      │
+│  │ ApplicationContext  │  setApplicationContext()                │
+│  │   Aware             │                                        │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ BeanPostProcessor   │  postProcessBeforeInitialization()     │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ @PostConstruct      │  (JSR-250)                             │
+│  │ InitializingBean    │  afterPropertiesSet()                  │
+│  │ Custom init-method  │                                        │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ BeanPostProcessor   │  postProcessAfterInitialization()      │
+│  └────────┬────────────┘                                        │
+│           ▼                                                     │
+│  ╔═════════════════════╗                                        │
+│  ║   BEAN IS READY     ║  ◀── available for injection           │
+│  ╚════════╤════════════╝                                        │
+│           ▼                                                     │
+│  ┌─────────────────────┐                                        │
+│  │ @PreDestroy         │  (on container shutdown)               │
+│  │ DisposableBean      │  destroy()                             │
+│  │ Custom destroy      │                                        │
+│  └─────────────────────┘                                        │
+│                                                                 │
+│  ⚠️  Prototype beans: Spring creates but does NOT manage        │
+│      destruction — @PreDestroy is never called automatically.   │
+│                                                                 │
+│  SCOPE COMPARISON:                                              │
+│  ┌────────────┬──────────────────┬────────────────────────┐     │
+│  │ Scope      │ Instances        │ Use Case               │     │
+│  ├────────────┼──────────────────┼────────────────────────┤     │
+│  │ singleton  │ 1 per container  │ Stateless services     │     │
+│  │ prototype  │ new per request  │ Stateful / short-lived │     │
+│  │ request    │ 1 per HTTP req   │ Request-scoped data    │     │
+│  │ session    │ 1 per HTTP sess  │ User session data      │     │
+│  │ websocket  │ 1 per WS session │ WebSocket handlers     │     │
+│  └────────────┴──────────────────┴────────────────────────┘     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -798,7 +1004,96 @@ ApplicationContext context = new ClassPathXmlApplicationContext("beans.xml");
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 3: Bean Scopes & Lifecycle</strong></summary>
+
+1. List all five bean scopes and give a use case for each.
+2. What is the exact order of bean lifecycle callbacks?
+3. Will `@PreDestroy` be called on a prototype-scoped bean? Why or why not?
+4. What does `@Lazy` do and when should you use it?
+5. Explain the difference between `@Scope("prototype")` and `@Lazy`.
+6. Give a real-world scenario where `@Conditional` is useful.
+
+</details>
+
+> **📚 Deep Dive — Read More (Part 3)**
+> - [Spring Bean Scopes — Baeldung](https://www.baeldung.com/spring-bean-scopes)
+> - [Spring Bean Lifecycle — Baeldung](https://www.baeldung.com/spring-bean-lifecycle)
+> - [@Lazy Initialization — Baeldung](https://www.baeldung.com/spring-lazy-annotation)
+> - [Spring @Conditional — Baeldung](https://www.baeldung.com/spring-conditional-annotations)
+
+
 ## Part 4 — Data Access, JPA & Exception Handling
+
+
+> **🎯 FAANG Interview Tip — Part 4**
+> The N+1 problem (Q40) and `@Transactional` propagation (Q35) are among the top 5 most-asked Spring Boot questions at FAANG companies. For N+1, know three solutions: `JOIN FETCH`, `@EntityGraph`, and `@BatchSize`. For transactions, be able to explain `REQUIRED` vs `REQUIRES_NEW` with a concrete scenario (e.g., order placement + audit logging where audit must persist even if order rolls back).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              SPRING DATA JPA REPOSITORY HIERARCHY               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                    Repository<T, ID>                             │
+│                          │                                      │
+│                          ▼                                      │
+│               CrudRepository<T, ID>                             │
+│               ┌──────────────────┐                              │
+│               │ save()           │                              │
+│               │ findById()       │                              │
+│               │ findAll()        │                              │
+│               │ deleteById()     │                              │
+│               │ count()          │                              │
+│               │ existsById()     │                              │
+│               └────────┬─────────┘                              │
+│                        ▼                                        │
+│          PagingAndSortingRepository<T, ID>                      │
+│               ┌──────────────────┐                              │
+│               │ findAll(Sort)    │                              │
+│               │ findAll(Pageable)│                              │
+│               └────────┬─────────┘                              │
+│                        ▼                                        │
+│              JpaRepository<T, ID>                               │
+│               ┌──────────────────┐                              │
+│               │ flush()          │                              │
+│               │ saveAndFlush()   │                              │
+│               │ deleteInBatch()  │                              │
+│               │ getById()        │  ◀── adds JPA-specific ops   │
+│               └──────────────────┘                              │
+│                                                                 │
+│                                                                 │
+│   @TRANSACTIONAL PROPAGATION CHEAT SHEET                        │
+│   ┌──────────────────┬───────────────────────────────────────┐  │
+│   │ Type             │ Behavior                              │  │
+│   ├──────────────────┼───────────────────────────────────────┤  │
+│   │ REQUIRED (def.)  │ Join existing or create new           │  │
+│   │ REQUIRES_NEW     │ Always create new (suspend current)   │  │
+│   │ NESTED           │ Savepoint inside current              │  │
+│   │ SUPPORTS         │ Join if exists, else non-transactional│  │
+│   │ NOT_SUPPORTED    │ Suspend current, run without          │  │
+│   │ MANDATORY        │ Must have existing, else exception    │  │
+│   │ NEVER            │ Must NOT have existing, else exception│  │
+│   └──────────────────┴───────────────────────────────────────┘  │
+│                                                                 │
+│   THE N+1 PROBLEM VISUALIZED                                    │
+│                                                                 │
+│   ❌ Without fix (N+1):                                        │
+│   SELECT * FROM department;           -- 1 query                │
+│   SELECT * FROM employee WHERE dept=1; -- +1                    │
+│   SELECT * FROM employee WHERE dept=2; -- +1                    │
+│   SELECT * FROM employee WHERE dept=3; -- +1  ... N queries!    │
+│                                                                 │
+│   ✅ With JOIN FETCH:                                           │
+│   SELECT d.*, e.* FROM department d                             │
+│     LEFT JOIN employee e ON d.id = e.dept_id;  -- 1 query!      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -1069,7 +1364,114 @@ List<Order> findAll();
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 4: Data Access, JPA & Exception Handling</strong></summary>
+
+1. What is the difference between `JpaRepository`, `CrudRepository`, and `PagingAndSortingRepository`?
+2. Explain `REQUIRED` vs `REQUIRES_NEW` transaction propagation with an example.
+3. What is the N+1 problem? Give three ways to fix it.
+4. How does `@ControllerAdvice` work for global exception handling?
+5. What is the difference between `save()` and `saveAndFlush()`?
+6. When would you use `@ResponseStatus` on a custom exception?
+
+</details>
+
+> **🔥 Real-World Interview Scenario — Amazon**
+> *"You have an order service that creates an order and sends an audit event. If the order creation fails, the audit event should still be persisted. How would you design the transaction boundaries?"*
+>
+> **Answer:** Use `REQUIRES_NEW` propagation for the audit service method. This creates a separate transaction that commits independently. Even if the outer order transaction rolls back, the audit record persists.
+> ```java
+> @Service
+> public class OrderService {
+>     @Transactional  // REQUIRED (default)
+>     public void placeOrder(Order order) {
+>         orderRepo.save(order);
+>         auditService.logAudit("ORDER_PLACED", order.getId()); // separate tx
+>         // if this throws, order rolls back but audit persists
+>     }
+> }
+> @Service
+> public class AuditService {
+>     @Transactional(propagation = Propagation.REQUIRES_NEW)
+>     public void logAudit(String event, Long entityId) {
+>         auditRepo.save(new AuditLog(event, entityId));
+>     }
+> }
+> ```
+
+> **📚 Deep Dive — Read More (Part 4)**
+> - [Spring Data JPA — Baeldung](https://www.baeldung.com/the-persistence-layer-with-spring-data-jpa)
+> - [Transaction Propagation — Baeldung](https://www.baeldung.com/spring-transactional-propagation-isolation)
+> - [N+1 Problem Solutions — Vlad Mihalcea](https://vladmihalcea.com/n-plus-1-query-problem/)
+> - [Exception Handling in Spring Boot — Baeldung](https://www.baeldung.com/exception-handling-for-rest-with-spring)
+
+
 ## Part 5 — Spring Boot Testing & Actuator
+
+
+> **🎯 FAANG Interview Tip — Part 5**
+> At Google and Stripe, you'll be asked about the *testing pyramid* in Spring Boot. Know when to use each: `@WebMvcTest` (controller layer only, fast), `@DataJpaTest` (repository layer, embedded DB), `@SpringBootTest` (full context, slow — use sparingly). Explain *why* `@MockBean` replaces a real bean in the context and when `@SpyBean` is better.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│             SPRING BOOT TESTING PYRAMID                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                          ╱╲                                     │
+│                         ╱  ╲                                    │
+│                        ╱ E2E╲      @SpringBootTest              │
+│                       ╱ Tests╲     (full context, slow)         │
+│                      ╱────────╲                                 │
+│                     ╱Integration╲   @WebMvcTest                 │
+│                    ╱   Tests     ╲  @DataJpaTest                │
+│                   ╱───────────────╲ @WebFluxTest                │
+│                  ╱   Unit Tests    ╲  @MockBean + Mockito       │
+│                 ╱   (fast, isolated)╲ No Spring context          │
+│                ╱─────────────────────╲                          │
+│                                                                 │
+│   TEST ANNOTATION DECISION TREE                                 │
+│                                                                 │
+│   What are you testing?                                         │
+│   │                                                             │
+│   ├── Controller endpoint?                                      │
+│   │   └── @WebMvcTest(MyController.class)                       │
+│   │       + @MockBean for service dependencies                  │
+│   │                                                             │
+│   ├── Repository / JPA query?                                   │
+│   │   └── @DataJpaTest                                          │
+│   │       (auto-configures embedded H2 + test EntityManager)    │
+│   │                                                             │
+│   ├── Service logic?                                            │
+│   │   └── Plain JUnit 5 + @ExtendWith(MockitoExtension.class)  │
+│   │       + @Mock / @InjectMocks  (no Spring context!)          │
+│   │                                                             │
+│   └── Full integration / cross-layer?                           │
+│       └── @SpringBootTest(webEnvironment = RANDOM_PORT)         │
+│           + TestRestTemplate or WebTestClient                   │
+│                                                                 │
+│                                                                 │
+│   ACTUATOR ARCHITECTURE                                         │
+│                                                                 │
+│   Application ──▶ /actuator/health   ──▶ Health indicators      │
+│               ──▶ /actuator/metrics  ──▶ Micrometer registry    │
+│               ──▶ /actuator/info     ──▶ Build/git info         │
+│               ──▶ /actuator/env      ──▶ Environment props      │
+│                        │                                        │
+│                        ▼                                        │
+│              ┌──────────────────┐                               │
+│              │   Prometheus     │ ──▶ Grafana Dashboard         │
+│              │   (scrapes /     │                               │
+│              │    actuator/     │                               │
+│              │    prometheus)   │                               │
+│              └──────────────────┘                               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -1325,7 +1727,105 @@ class OrderControllerTest {
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 5: Testing & Actuator</strong></summary>
+
+1. When should you use `@WebMvcTest` vs `@SpringBootTest`?
+2. What does `@MockBean` do that `@Mock` from Mockito does not?
+3. How does `@DataJpaTest` configure the test environment?
+4. What is the difference between `@SpringBootTest(webEnvironment = MOCK)` and `RANDOM_PORT`?
+5. Name four Actuator endpoints and what they expose.
+6. How do you create a custom health indicator?
+
+</details>
+
+> **📚 Deep Dive — Read More (Part 5)**
+> - [Testing in Spring Boot — Baeldung](https://www.baeldung.com/spring-boot-testing)
+> - [@WebMvcTest vs @SpringBootTest — Baeldung](https://www.baeldung.com/spring-boot-testing-web-layer)
+> - [Spring Boot Actuator — Official Guide](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#actuator)
+> - [Prometheus + Grafana + Spring Boot — Baeldung](https://www.baeldung.com/spring-boot-self-hosted-monitoring)
+
+
 ## Part 6 — Security, REST API Design & Profiles
+
+
+> **🎯 FAANG Interview Tip — Part 6**
+> JWT authentication flow is asked at virtually every FAANG interview involving Spring Boot. You must be able to draw the complete flow: login → validate credentials → generate JWT → return token → client sends `Authorization: Bearer <token>` → filter extracts token → validate signature + expiry → set `SecurityContext` → proceed. Also know the Spring Security filter chain order.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│             SPRING SECURITY FILTER CHAIN                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  HTTP Request                                                   │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────────────────────────────────────────┐            │
+│  │            DelegatingFilterProxy                │            │
+│  │  (bridges Servlet Filter → Spring Security)     │            │
+│  └────────────────────┬────────────────────────────┘            │
+│                       ▼                                         │
+│  ┌─────────────────────────────────────────────────┐            │
+│  │          FilterChainProxy                       │            │
+│  │  ┌───────────────────────────────────────────┐  │            │
+│  │  │ 1. SecurityContextPersistenceFilter       │  │            │
+│  │  │ 2. CsrfFilter                            │  │            │
+│  │  │ 3. LogoutFilter                           │  │            │
+│  │  │ 4. UsernamePasswordAuthenticationFilter   │  │            │
+│  │  │ 5. ★ JwtAuthenticationFilter (custom)     │  │            │
+│  │  │ 6. ExceptionTranslationFilter             │  │            │
+│  │  │ 7. FilterSecurityInterceptor (authz)      │  │            │
+│  │  └───────────────────────────────────────────┘  │            │
+│  └────────────────────┬────────────────────────────┘            │
+│                       ▼                                         │
+│              DispatcherServlet                                  │
+│                       │                                         │
+│                       ▼                                         │
+│                  Controller                                     │
+│                                                                 │
+│                                                                 │
+│   JWT AUTHENTICATION FLOW                                       │
+│                                                                 │
+│   Client                    Server                              │
+│     │                         │                                 │
+│     │  POST /auth/login       │                                 │
+│     │  {user, password}       │                                 │
+│     │────────────────────────▶│                                 │
+│     │                         │── validate credentials          │
+│     │                         │── generate JWT (secret + expiry)│
+│     │   { "token": "eyJ..." } │                                 │
+│     │◀────────────────────────│                                 │
+│     │                         │                                 │
+│     │  GET /api/orders         │                                 │
+│     │  Authorization:          │                                 │
+│     │  Bearer eyJ...           │                                 │
+│     │────────────────────────▶│                                 │
+│     │                         │── JwtFilter extracts token      │
+│     │                         │── validate signature + expiry   │
+│     │                         │── set SecurityContext            │
+│     │                         │── proceed to controller         │
+│     │  { orders: [...] }      │                                 │
+│     │◀────────────────────────│                                 │
+│                                                                 │
+│                                                                 │
+│   PROFILE ACTIVATION HIERARCHY                                  │
+│                                                                 │
+│   ┌─────────────────────────────────────────────┐               │
+│   │ Priority (highest to lowest):               │               │
+│   │ 1. Command line: --spring.profiles.active=  │               │
+│   │ 2. System property: -Dspring.profiles.active│               │
+│   │ 3. OS env: SPRING_PROFILES_ACTIVE           │               │
+│   │ 4. application.properties/yml               │               │
+│   │ 5. @ActiveProfiles (tests only)             │               │
+│   └─────────────────────────────────────────────┘               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -1638,7 +2138,119 @@ public class CorsConfig implements WebMvcConfigurer {
 
 ---
 
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Part 6: Security, REST & Profiles</strong></summary>
+
+1. Draw the complete JWT authentication flow from login to secured endpoint access.
+2. What is the Spring Security filter chain? Name at least 4 filters in order.
+3. How do profiles work and what is the activation priority order?
+4. What is the difference between `@Controller` and `@RestController`?
+5. When would you use `@PathVariable` vs `@RequestParam`?
+6. How do you configure CORS globally in Spring Boot?
+7. How does `@Valid` / `@Validated` trigger bean validation?
+
+</details>
+
+> **🔥 Real-World Interview Scenario — Google**
+> *"You're building a multi-tenant SaaS API with Spring Boot. Each tenant has different rate limits and feature flags. How do you design the request processing pipeline?"*
+>
+> **Answer:** Use a custom `HandlerInterceptor` (or filter) that extracts the tenant ID from the JWT claims or a custom header. Look up tenant config from a cache-backed service. Use `@Scope("request")` beans to hold tenant context. Apply rate limiting per-tenant using a `RateLimiter` bean resolved by tenant ID. Feature flags can use `@ConditionalOnProperty` for static flags or a runtime feature flag service (LaunchDarkly/Unleash) for dynamic ones.
+
+> **📚 Deep Dive — Read More (Part 6)**
+> - [Spring Security Architecture — Official](https://docs.spring.io/spring-security/reference/servlet/architecture.html)
+> - [JWT with Spring Boot — Baeldung](https://www.baeldung.com/spring-security-oauth-jwt)
+> - [Spring Boot Profiles — Baeldung](https://www.baeldung.com/spring-profiles)
+> - [REST API Best Practices — Baeldung](https://www.baeldung.com/rest-with-spring-series)
+
+
 ## Additional High-Value Interview Questions
+
+
+> **🎯 FAANG Interview Tip — Advanced Topics**
+> Questions Q61–Q100 are what separate senior candidates from mid-level. At Amazon and Apple, you might be asked to design a custom Spring Boot starter from scratch (Q97), explain the difference between `@Component` and `@Configuration` proxy mode (Q98), or implement rate limiting (Q94). These topics demonstrate architectural maturity.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│           SPRING MVC REQUEST PROCESSING FLOW                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Client HTTP Request                                            │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌──────────────────┐                                           │
+│  │ DispatcherServlet│  (front controller)                       │
+│  └────────┬─────────┘                                           │
+│           ▼                                                     │
+│  ┌──────────────────┐    Which controller handles this URL?     │
+│  │ HandlerMapping   │────────────────────────────┐              │
+│  └────────┬─────────┘                            │              │
+│           ▼                                      │              │
+│  ┌──────────────────┐                            │              │
+│  │ HandlerAdapter   │  Invokes the right method  │              │
+│  └────────┬─────────┘                            │              │
+│           ▼                                      │              │
+│  ┌──────────────────┐                            │              │
+│  │ Controller       │  @GetMapping, @PostMapping │              │
+│  │ (@RestController)│  Business logic here       │              │
+│  └────────┬─────────┘                            │              │
+│           ▼                                      │              │
+│  ┌──────────────────┐                            │              │
+│  │ HttpMessage      │  Jackson converts          │              │
+│  │ Converter        │  Object → JSON             │              │
+│  └────────┬─────────┘                            │              │
+│           ▼                                      │              │
+│  HTTP Response (JSON)                            │              │
+│                                                  │              │
+│  (For @Controller with view:)                    │              │
+│  Controller → ViewResolver → View → HTML         │              │
+│                                                                 │
+│                                                                 │
+│   MICROSERVICES ARCHITECTURE WITH SPRING BOOT                   │
+│                                                                 │
+│   ┌──────────┐     ┌──────────────────────────┐                │
+│   │  Client  │────▶│    API Gateway            │                │
+│   └──────────┘     │  (Spring Cloud Gateway)   │                │
+│                    └─────────┬────────────────┘                 │
+│                              │                                  │
+│              ┌───────────────┼───────────────┐                  │
+│              ▼               ▼               ▼                  │
+│     ┌──────────────┐ ┌────────────┐ ┌──────────────┐           │
+│     │ Order Service│ │User Service│ │Payment Svc   │           │
+│     │ (Spring Boot)│ │(Spring Boot│ │(Spring Boot) │           │
+│     └──────┬───────┘ └─────┬──────┘ └──────┬───────┘           │
+│            │               │               │                    │
+│            └───────────────┼───────────────┘                    │
+│                            ▼                                    │
+│                   ┌──────────────────┐                          │
+│                   │ Service Registry │                          │
+│                   │ (Eureka Server)  │                          │
+│                   └──────────────────┘                          │
+│                                                                 │
+│   Cross-cutting: Config Server │ Circuit Breaker │ Zipkin       │
+│                                                                 │
+│                                                                 │
+│   CIRCUIT BREAKER STATE MACHINE (Resilience4j)                  │
+│                                                                 │
+│      ┌──────────┐  failure rate    ┌──────────┐                 │
+│      │  CLOSED  │ ─── exceeds ───▶ │   OPEN   │                │
+│      │ (normal) │   threshold      │ (reject) │                │
+│      └──────────┘                  └────┬─────┘                │
+│           ▲                             │                       │
+│           │                        wait duration                │
+│      success                            │                       │
+│      rate OK                            ▼                       │
+│           │                    ┌───────────────┐                │
+│           └────────────────────│  HALF-OPEN    │                │
+│                                │ (trial calls) │                │
+│                                └───────────────┘                │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
@@ -2605,6 +3217,57 @@ Response:
 ```
 
 ---
+
+
+---
+
+<details>
+<summary><strong>✅ Check Yourself — Advanced Topics (Q61–Q100)</strong></summary>
+
+1. What is the difference between `application.properties` and `application.yml`?
+2. How does Spring Boot DevTools enable hot reload?
+3. Explain AOP: what is a pointcut, advice, and aspect?
+4. What are the three states of a circuit breaker?
+5. How does Eureka service discovery work?
+6. What does an API Gateway do in a microservices architecture?
+7. Explain the difference between `@Cacheable`, `@CacheEvict`, and `@CachePut`.
+8. What is the difference between Spring MVC and Spring WebFlux?
+9. How do you create a custom Spring Boot starter?
+10. What is the difference between `@Component` and `@Configuration` (CGLIB proxy)?
+
+</details>
+
+> **🔥 Real-World Interview Scenario — Netflix**
+> *"You're building a Spring Boot microservices system with 15 services. Service A calls Service B, which calls Service C. Service C is experiencing intermittent failures. How do you prevent cascading failures?"*
+>
+> **Answer:**
+> 1. **Circuit Breaker** (Resilience4j) on Service B's call to C — stops hammering a failing service
+> 2. **Fallback method** — return cached/default data when circuit is open
+> 3. **Timeout** — don't let B wait forever for C (e.g., 2s timeout)
+> 4. **Bulkhead** — isolate C calls into a separate thread pool so B's other work isn't blocked
+> 5. **Retry with backoff** — for transient failures in HALF_OPEN state
+> 6. **Health check** — Actuator `/health` exposes circuit state to monitoring
+>
+> ```java
+> @CircuitBreaker(name = "serviceC", fallbackMethod = "fallback")
+> @Retry(name = "serviceC")
+> @TimeLimiter(name = "serviceC")
+> public CompletableFuture<Response> callServiceC(Request req) {
+>     return CompletableFuture.supplyAsync(() -> restTemplate.getForObject(...));
+> }
+> public CompletableFuture<Response> fallback(Request req, Throwable t) {
+>     return CompletableFuture.completedFuture(cachedResponse);
+> }
+> ```
+
+> **📚 Deep Dive — Read More (Advanced Topics)**
+> - [Circuit Breaker with Resilience4j — Baeldung](https://www.baeldung.com/spring-cloud-circuit-breaker)
+> - [Spring Cloud Gateway — Official](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/)
+> - [Service Discovery with Eureka — Baeldung](https://www.baeldung.com/spring-cloud-netflix-eureka)
+> - [Spring WebFlux Guide — Baeldung](https://www.baeldung.com/spring-webflux)
+> - [Caching in Spring Boot — Baeldung](https://www.baeldung.com/spring-cache-tutorial)
+> - [Creating a Custom Starter — Baeldung](https://www.baeldung.com/spring-boot-custom-starter)
+
 
 ## Final Quiz
 
